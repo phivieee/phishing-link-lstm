@@ -1,6 +1,8 @@
+import html
 import json
 import re
 from pathlib import Path
+from textwrap import dedent
 
 import numpy as np
 import pandas as pd
@@ -17,7 +19,7 @@ CONTROL_PATTERN = re.compile(r"[\x00-\x1F\x7F-\x9F]+")
 
 
 def clean_url(value: str) -> str:
-    """Apply the same normalization used during model training."""
+    """Apply the same normalization used during training."""
     value = str(value).strip()
     value = CONTROL_PATTERN.sub("", value)
     value = re.sub(r"(?i)^https?://", "", value)
@@ -55,10 +57,8 @@ def load_artifacts():
     return model, thresholds
 
 
-def predict_urls(
-    urls: list[str],
-    threshold_mode: str = "strict",
-) -> pd.DataFrame:
+def predict_urls(urls: list[str]) -> pd.DataFrame:
+    """Predict URLs using the strict deployment threshold."""
     model, thresholds = load_artifacts()
 
     original_urls = [str(url) for url in urls]
@@ -80,14 +80,8 @@ def predict_urls(
         thresholds["strict_threshold"]
     )
 
-    selected_threshold = (
-        strict_threshold
-        if threshold_mode == "strict"
-        else balanced_threshold
-    )
-
     predictions = (
-        probabilities >= selected_threshold
+        probabilities >= strict_threshold
     ).astype(int)
 
     status = np.where(
@@ -105,7 +99,7 @@ def predict_urls(
             "URL": original_urls,
             "Cleaned URL": cleaned_urls,
             "Phishing Probability": probabilities,
-            "Threshold Used": selected_threshold,
+            "Threshold Used": strict_threshold,
             "Prediction": predictions,
             "Status": status,
         }
@@ -172,8 +166,8 @@ st.markdown(
     }
 
     .block-container {
-        max-width: 1160px;
-        padding: 3.2rem 1.25rem 4rem;
+        max-width: 1120px;
+        padding: 2.6rem 1.25rem 4rem;
     }
 
     .topbar {
@@ -182,7 +176,7 @@ st.markdown(
         align-items: center;
         padding-bottom: 22px;
         border-bottom: 1px solid var(--border);
-        margin-bottom: 28px;
+        margin-bottom: 44px;
     }
 
     .brand {
@@ -226,14 +220,6 @@ st.markdown(
         background: rgba(255, 255, 255, 0.02);
     }
 
-    .workspace {
-        background: rgba(20, 24, 32, 0.94);
-        border: 1px solid var(--border);
-        border-radius: 22px;
-        padding: 34px;
-        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.32);
-    }
-
     .intro-label {
         color: var(--accent);
         font-size: 0.78rem;
@@ -244,73 +230,38 @@ st.markdown(
     }
 
     .intro-title {
-        margin: 0;
+        margin: 0 0 34px;
         color: var(--text);
-        font-size: clamp(2.1rem, 4vw, 4rem);
+        font-size: clamp(2.3rem, 4.6vw, 4.35rem);
         line-height: 1.02;
         letter-spacing: -0.055em;
         font-weight: 850;
-        max-width: 720px;
-    }
-
-    .intro-text {
-        max-width: 670px;
-        color: var(--muted);
-        font-size: 1rem;
-        line-height: 1.75;
-        margin: 18px 0 28px;
-    }
-
-    .feature-row {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin: 0 0 30px;
-    }
-
-    .feature {
-        min-height: 94px;
-        padding: 17px;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        background: var(--surface-soft);
-    }
-
-    .feature-number {
-        color: var(--accent);
-        font-size: 0.74rem;
-        font-weight: 800;
-    }
-
-    .feature-title {
-        color: var(--text);
-        font-size: 0.9rem;
-        font-weight: 700;
-        margin-top: 8px;
-    }
-
-    .feature-copy {
-        color: var(--muted);
-        font-size: 0.76rem;
-        line-height: 1.45;
-        margin-top: 5px;
+        max-width: 760px;
     }
 
     .section-heading {
         color: var(--text);
-        font-size: 1.05rem;
-        font-weight: 750;
-        margin: 4px 0 5px;
+        font-size: 1.08rem;
+        font-weight: 780;
+        margin: 0 0 5px;
     }
 
     .section-copy {
         color: var(--muted);
-        font-size: 0.84rem;
-        margin: 0 0 14px;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        margin: 0 0 16px;
+    }
+
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(20, 24, 32, 0.92);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.20);
     }
 
     div[data-testid="stTextInput"] input {
-        min-height: 53px;
+        min-height: 54px;
         color: var(--text);
         background: #0f131a;
         border: 1px solid var(--border);
@@ -323,15 +274,8 @@ st.markdown(
         box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.13);
     }
 
-    div[data-testid="stSelectbox"] > div > div {
-        min-height: 53px;
-        color: var(--text);
-        background: #0f131a;
-        border: 1px solid var(--border);
-        border-radius: 11px;
-    }
-
-    .stButton > button {
+    .stButton > button,
+    .stFormSubmitButton > button {
         width: 100%;
         min-height: 53px;
         border: 0;
@@ -344,14 +288,15 @@ st.markdown(
             background 0.16s ease;
     }
 
-    .stButton > button:hover {
+    .stButton > button:hover,
+    .stFormSubmitButton > button:hover {
         background: var(--accent-hover);
         transform: translateY(-1px);
         color: #171109;
     }
 
     .result-card {
-        margin-top: 20px;
+        margin-top: 22px;
         padding: 20px;
         border: 1px solid var(--border);
         border-radius: 15px;
@@ -442,13 +387,6 @@ st.markdown(
         overflow-wrap: anywhere;
     }
 
-    div[data-testid="stExpander"] {
-        margin-top: 24px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-    }
-
     div[data-testid="stFileUploader"] {
         background: #0f131a;
         border-radius: 11px;
@@ -460,6 +398,17 @@ st.markdown(
         overflow: hidden;
     }
 
+    .batch-note {
+        margin: 0 0 16px;
+        padding: 13px 14px;
+        color: #cbd3df;
+        background: #10141b;
+        border: 1px solid #282f3a;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        line-height: 1.55;
+    }
+
     .footer-note {
         color: #667085;
         text-align: center;
@@ -469,16 +418,7 @@ st.markdown(
 
     @media (max-width: 760px) {
         .block-container {
-            padding-top: 1.5rem;
-        }
-
-        .workspace {
-            padding: 22px 17px;
-            border-radius: 17px;
-        }
-
-        .feature-row {
-            grid-template-columns: 1fr;
+            padding-top: 1.4rem;
         }
 
         .top-status {
@@ -486,7 +426,8 @@ st.markdown(
         }
 
         .intro-title {
-            font-size: 2.35rem;
+            font-size: 2.5rem;
+            margin-bottom: 26px;
         }
     }
     </style>
@@ -514,61 +455,29 @@ try:
     model, thresholds = load_artifacts()
 except Exception:
     st.error(
-        "Model gagal dimuat. Ganti file model lama dengan paket "
-        "yang sudah diperbaiki dan pastikan struktur folder GitHub benar."
+        "Model gagal dimuat. Pastikan folder `model` berisi "
+        "`pure_lstm_model.keras` dan `thresholds.json`."
     )
     st.stop()
-
-st.markdown('<div class="workspace">', unsafe_allow_html=True)
 
 st.markdown(
     """
     <div class="intro-label">URL security analysis</div>
-    <h1 class="intro-title">Periksa tautan sebelum kamu mempercayainya.</h1>
-    <p class="intro-text">
-        Model character-level LSTM menganalisis urutan karakter pada URL
-        untuk memperkirakan apakah sebuah tautan legitimate, perlu ditinjau,
-        atau terindikasi phishing.
-    </p>
-
-    <div class="feature-row">
-        <div class="feature">
-            <div class="feature-number">01</div>
-            <div class="feature-title">Character analysis</div>
-            <div class="feature-copy">
-                Membaca struktur domain, path, query, angka, dan simbol.
-            </div>
-        </div>
-        <div class="feature">
-            <div class="feature-number">02</div>
-            <div class="feature-title">Strict threshold</div>
-            <div class="feature-copy">
-                Mode ketat membantu mengurangi false positive.
-            </div>
-        </div>
-        <div class="feature">
-            <div class="feature-number">03</div>
-            <div class="feature-title">Batch inspection</div>
-            <div class="feature-copy">
-                Periksa banyak URL sekaligus melalui file CSV.
-            </div>
-        </div>
-    </div>
+    <h1 class="intro-title">
+        Periksa tautan sebelum kamu mempercayainya.
+    </h1>
     """,
     unsafe_allow_html=True,
 )
 
-left_col, right_col = st.columns(
-    [1.85, 0.85],
-    gap="medium",
-)
-
-with left_col:
+with st.container(border=True):
     st.markdown(
         """
-        <div class="section-heading">URL yang akan diperiksa</div>
+        <div class="section-heading">Periksa satu URL</div>
         <div class="section-copy">
-            Tempel URL lengkap, misalnya https://example.com/login.
+            Tempel URL lengkap yang ingin dianalisis.
+            Sistem otomatis menggunakan strict threshold untuk
+            mengurangi false positive.
         </div>
         """,
         unsafe_allow_html=True,
@@ -586,94 +495,71 @@ with left_col:
             use_container_width=True,
         )
 
-with right_col:
+    if submitted:
+        if not url_input.strip():
+            st.warning("Masukkan URL terlebih dahulu.")
+        else:
+            with st.spinner("Menganalisis pola URL..."):
+                result = predict_urls([url_input])
+
+            probability = float(
+                result.loc[0, "Phishing Probability"]
+            )
+            status = str(result.loc[0, "Status"])
+            cleaned_url = html.escape(
+                str(result.loc[0, "Cleaned URL"])
+            )
+
+            status_class = {
+                "Legitimate": "status-legitimate",
+                "Perlu ditinjau": "status-review",
+                "Phishing": "status-phishing",
+            }[status]
+
+            result_html = dedent(
+                f"""
+                <div class="result-card">
+                    <div class="result-header">
+                        <div class="result-label">Hasil analisis</div>
+                        <span class="status-pill {status_class}">
+                            {status}
+                        </span>
+                    </div>
+                    <div class="probability-value">{probability:.2%}</div>
+                    <div class="probability-caption">
+                        Probabilitas URL termasuk phishing
+                    </div>
+                    <div class="meter">
+                        <div
+                            class="meter-fill"
+                            style="width: {probability * 100:.2f}%;">
+                        </div>
+                    </div>
+                    <div class="cleaned-url">{cleaned_url}</div>
+                </div>
+                """
+            ).strip()
+
+            st.markdown(
+                result_html,
+                unsafe_allow_html=True,
+            )
+
+with st.container(border=True):
     st.markdown(
         """
-        <div class="section-heading">Mode keputusan</div>
+        <div class="section-heading">Periksa URL sekaligus</div>
         <div class="section-copy">
-            Strict disarankan untuk mengurangi salah deteksi.
+            Unggah file CSV untuk menganalisis banyak tautan dalam
+            satu proses.
+        </div>
+        <div class="batch-note">
+            File harus memiliki kolom bernama <strong>url</strong>.
+            Setiap URL akan diperiksa menggunakan strict threshold,
+            lalu hasilnya dapat diunduh kembali sebagai CSV.
         </div>
         """,
         unsafe_allow_html=True,
-    )
-
-    threshold_mode = st.selectbox(
-        "Mode",
-        options=["strict", "balanced"],
-        format_func=lambda mode: (
-            "Strict · false positive lebih rendah"
-            if mode == "strict"
-            else "Balanced · recall lebih tinggi"
-        ),
-        label_visibility="collapsed",
-    )
-
-if submitted:
-    if not url_input.strip():
-        st.warning("Masukkan URL terlebih dahulu.")
-    else:
-        with st.spinner("Menganalisis pola URL..."):
-            result = predict_urls(
-                [url_input],
-                threshold_mode=threshold_mode,
-            )
-
-        probability = float(
-            result.loc[0, "Phishing Probability"]
-        )
-        status = str(result.loc[0, "Status"])
-        cleaned_url = str(result.loc[0, "Cleaned URL"])
-
-        status_class = {
-            "Legitimate": "status-legitimate",
-            "Perlu ditinjau": "status-review",
-            "Phishing": "status-phishing",
-        }[status]
-
-        safe_cleaned_url = (
-            cleaned_url
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-
-        st.markdown(
-            f"""
-            <div class="result-card">
-                <div class="result-header">
-                    <div>
-                        <div class="result-label">Hasil analisis</div>
-                    </div>
-                    <span class="status-pill {status_class}">
-                        {status}
-                    </span>
-                </div>
-
-                <div class="probability-value">
-                    {probability:.2%}
-                </div>
-                <div class="probability-caption">
-                    Probabilitas URL termasuk phishing
-                </div>
-
-                <div class="meter">
-                    <div
-                        class="meter-fill"
-                        style="width: {probability * 100:.2f}%;">
-                    </div>
-                </div>
-
-                <div class="cleaned-url">
-                    {safe_cleaned_url}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-with st.expander("Periksa banyak URL melalui CSV"):
-    st.caption(
-        "Gunakan file CSV yang mempunyai kolom bernama `url`."
     )
 
     uploaded_file = st.file_uploader(
@@ -706,8 +592,7 @@ with st.expander("Periksa banyak URL melalui CSV"):
                             batch_data["url"]
                             .fillna("")
                             .astype(str)
-                            .tolist(),
-                            threshold_mode=threshold_mode,
+                            .tolist()
                         )
 
                         final_result = pd.concat(
@@ -751,5 +636,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-st.markdown("</div>", unsafe_allow_html=True)
