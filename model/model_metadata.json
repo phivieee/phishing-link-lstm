@@ -1,0 +1,19 @@
+{
+  "model_name": "pure_character_lstm",
+  "framework": "TensorFlow/Keras",
+  "tensorflow_version": "2.20.0",
+  "input_type": "raw URL string",
+  "label_mapping": {
+    "0": "legitimate",
+    "1": "phishing"
+  },
+  "preprocessing": {
+    "remove_http_https_scheme": true,
+    "lowercase": true,
+    "remove_control_characters": true,
+    "remove_trailing_slash": true
+  },
+  "balanced_threshold": 0.5104214549064636,
+  "strict_threshold": 0.867286741733551,
+  "default_threshold_mode": "strict"
+}
