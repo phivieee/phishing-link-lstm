@@ -1,6 +1,0 @@
-{
-  "balanced_threshold": 0.5104214549064636,
-  "balanced_validation_f1": 0.7611583973422446,
-  "strict_threshold": 0.867286741733551,
-  "strict_target_false_positive_rate": 0.01
-}
